@@ -51,11 +51,7 @@ def extract_personal_info(data):
     # Extracting the date of birth
     date_of_birth = data.get("DATE_OF_BIRTH", "")
 
-    return {
-        "Name": full_name,
-        "Address": full_address,
-        "DOB": date_of_birth
-    }
+    return full_name, full_address, date_of_birth
 
 def aws_comprehend_pii(text):
     response = comprehend_client.detect_entities(Text='str', LanguageCode='en')
@@ -103,7 +99,7 @@ def main():
             st.write("Extracted Structured Data:", extracted_data)
 
         if extracted_data:
-            parsed_data = extract_personal_info(extracted_data)
+            parsed_data = aws_comprehend_pii(extracted_data)
             st.write(parsed_data)
             df = pd.DataFrame([parsed_data])
             
