@@ -19,21 +19,47 @@ file_name = 'extracted_pii.csv'      # The CSV file where data will be stored
 #     relevant_text = [item['Text'] for item in response['Blocks'] if item['BlockType'] in ['WORD', 'LAYOUT_SECTION_HEADER']]
 #     return ' '.join(relevant_text)
 
+# def aws_analyze_id(image_bytes):
+#     response = textract_client.analyze_id(DocumentPages=[{'Bytes': image_bytes}])
+#     print(response)
+#     fields = response['IdentityDocuments'][0]['IdentityDocumentFields']
+#     extracted_data = {}
+#     for field in fields:
+#         if 'ValueDetection' in field:
+#             key = field['Type']['Text']
+#             value = field['ValueDetection']['Text']
+#             extracted_data[key] = value
+            
+#             # extracted_text = ""
+#             # for key, value in extracted_data.items():
+#             #     extracted_text += f"{key}: {value}\n"
+
+#     return extracted_data
+
+
 def aws_analyze_id(image_bytes):
+    # Initialize the Textract client
+    textract_client = boto3.client('textract')
+    
+    # Call AnalyzeID API
     response = textract_client.analyze_id(DocumentPages=[{'Bytes': image_bytes}])
+    
+    # Debugging print, can be commented out in production
     print(response)
+    
+    # Handle the fields from the response
     fields = response['IdentityDocuments'][0]['IdentityDocumentFields']
     extracted_data = {}
+    
     for field in fields:
-        if 'ValueDetection' in field:
-            key = field['Type']['Text']
+        # Check if 'ValueDetection' exists and has text content
+        if 'ValueDetection' in field and 'Text' in field['ValueDetection']:
+            # Use 'Type' key to describe the 'Text' content if available
+            # Otherwise use 'Unknown'
+            key = field['Type']['Text'] if 'Text' in field['Type'] else 'Unknown'
             value = field['ValueDetection']['Text']
             extracted_data[key] = value
-            
-            # extracted_text = ""
-            # for key, value in extracted_data.items():
-            #     extracted_text += f"{key}: {value}\n"
-
+    
     return extracted_data
 
 def extract_personal_info(data):
@@ -45,7 +71,7 @@ def extract_personal_info(data):
     # Extracting the full address
     full_address = ", ".join([data.get("ADDRESS", ""),
                               data.get("CITY_IN_ADDRESS", ""),
-                              data.get("STATE_NAME", ""),
+                              data.get("STATE_IN_ADDRESS", ""),
                               data.get("ZIP_CODE_IN_ADDRESS", "")]).strip(", ")
 
     # Extracting the date of birth
