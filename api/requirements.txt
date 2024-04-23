@@ -1,0 +1,5 @@
+fastapi==0.108.0
+pydantic==2.5.3
+pydantic_core==2.14.6
+fastapi-socketio==0.0.10
+uvicorn==0.25.0
