@@ -17,3 +17,10 @@ See test/request.ipynb
 
 ### Dependencies to add to requirements.txt:
 Boto3, python-multipart, openai
+
+### Environment Variables
+export AWS_ACCESS_KEY_ID="your_access_key_id_here"
+export AWS_SECRET_ACCESS_KEY="your_secret_access_key_here"
+export AWS_SESSION_TOKEN="your_session_token_here"  # Optional
+export AWS_DEFAULT_REGION="your_default_region_here"
+export OPENAI_API_KEY="your_open_ai_api_key_here"
