@@ -3,6 +3,7 @@ import tempfile
 import boto3
 import openai
 import streamlit as st
+import json
 
 # Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -14,6 +15,15 @@ boto3.setup_default_session(region_name=AWS_REGION)
 # AWS clients
 textract_client = boto3.client('textract')
 comprehend_client = boto3.client('comprehend')
+
+QUERY_DICT = {
+    "First Name": "First name of the person",
+    "Middle Name": "Middle name of the person. Leave empty if not applicable.",
+    "Last Name": "Last name of the person",
+    "Date of Birth": "Date of birth of the person in MM-DD-YYYY format",
+    "Address": "Full Address including state, zip-code, country, street and apartment address",
+    "Organization": "affiliated organization name"
+}
 
 def extract_text_with_textract(image_bytes):
     """Use AWS Textract to analyze an ID document and extract key-value pairs."""
@@ -28,15 +38,15 @@ def analyze_text(image_bytes):
     full_text = ' '.join(item['Text'] for item in response['Blocks'] if item['BlockType'] in ['WORD', 'LAYOUT_SECTION_HEADER'])
     return full_text
 
-def get_entities_from_openai(text):
+def get_entities_from_openai(text, query_dict):
     """Extract entities using OpenAI model."""
     response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "system", "content": "Extract entities from the following text."},
-                  {"role": "user", "content": text}],
+        messages=[{"role": "system", "content": "Partition and extract all the given text to fit in values for the given keys."},
+                  {"role": "user", "content": f"Extract all the given text to fit in values for the given keys. Return the JSON Object. Don't hallucinate. Keys and Descriptions: {query_dict} Text: {text}"}],
         max_tokens=150,
     )
-    return response.choices[0].message.content.strip()
+    return response.choices[0].message.content
 
 def get_entities_from_comprehend(text):
     """Extract entities using AWS Comprehend."""
@@ -50,19 +60,21 @@ def merge_entities(comprehend_entities, openai_entities):
 def process_id_document(image_bytes):
     """Process an ID document to extract and analyze data."""
     extracted_data = extract_text_with_textract(image_bytes)
-    document_type = extracted_data.get('DocumentType', 'Unknown')
+    st.write("Extracted Data:", extracted_data)
+    id_type = extracted_data.get('ID_TYPE')
+    st.write("document_type:", id_type)
 
-    if document_type == 'Unknown':
+    if id_type == 'UNKNOWN':
         full_text = analyze_text(image_bytes)
-        comprehend_entities = get_entities_from_comprehend(full_text)
-        st.write("Comprehend Entities:", comprehend_entities)
-        #openai_entities = get_entities_from_openai(full_text)
-        #st.write("OpenAI Entities:", openai_entities)
-        #merged_entities = merge_entities(comprehend_entities, json.loads(openai_entities))  # Safer than eval
-        #extracted_data.update(merged_entities)
-        extracted_data.update(comprehend_entities)
+        # comprehend_entities = get_entities_from_comprehend(full_text)
+        # st.write("Comprehend Entities:", comprehend_entities)
+        openai_entities = get_entities_from_openai(full_text, QUERY_DICT)
+        st.write("OpenAI Entities:", openai_entities)
+        # merged_entities = merge_entities(comprehend_entities, json.loads(openai_entities))  # Safer than eval
+        # extracted_data.update(merged_entities)
+        return json.loads(openai_entities)
 
-    return {'DocumentType': document_type, **extracted_data}
+    return {'DocumentType': id_type, **extracted_data}
 
 def main():
     """Main function to run the Streamlit app."""
