@@ -14,3 +14,6 @@ open test/upload_image.html
 
 ### Run Image Request Script:
 See test/request.ipynb
+
+### Dependencies to add to requirements.txt:
+Boto3, python-multipart, openai
