@@ -9,7 +9,7 @@
             form.addEventListener('submit', function(event) {
                 event.preventDefault();  // Prevent the default form submission
                 const formData = new FormData(form);
-                fetch('http://127.0.0.1:8000/id-extract/', {
+                fetch('http://18.235.248.248:8000/id-extract/', {
                     method: 'POST',
                     body: formData,
                 })
