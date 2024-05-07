@@ -2,7 +2,6 @@ import os, boto3, openai, json, base64
 
 # Constants
 openai.api_key = os.environ['OPENAI_API_KEY']
-print(openai.api_key)
 AWS_REGION = 'us-east-1'
 QUERY_DICT = {
     "ID_TYPE": "The type of the identification document provided.",
