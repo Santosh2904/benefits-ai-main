@@ -26,9 +26,8 @@ comprehend_client = boto3.client('comprehend')
 def are_required_fields_empty(extracted_dict) -> bool:
     for required_field in REQUIRED_FIELDS:
         if required_field not in extracted_dict or extracted_dict[required_field] == '':
-            return False
-    return True
-    
+            return True
+    return False
 
 def extract_text_with_textract(image_bytes) -> dict:
     """Use AWS Textract to analyze an ID document and extract key-value pairs."""
