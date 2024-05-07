@@ -3,7 +3,7 @@ import os, boto3, openai, json, base64
 # Constants
 openai.api_key = os.environ['OPENAI_API_KEY']
 AWS_REGION = 'us-east-1'
-QUERY_DICT = {
+DEFAULT_REQUIRED_FIELDS_QUERIES = {
     "ID_TYPE": "The type of the identification document provided.",
     "FIRST_NAME": "First name of the person.",
     "MIDDLE_NAME": "Middle name of the person. Leave empty if not applicable.",
@@ -13,7 +13,10 @@ QUERY_DICT = {
     "ORGANIZATION": "Name of the person's affiliated organization.",
     "ZIP_CODE_IN_ADDRESS": "The zip code of the person's address."
 }
-REQUIRED_FIELDS = ['ID_TYPE', 'FIRST_NAME', 'LAST_NAME', 'DATE_OF_BIRTH', 'ADDRESS', 'ZIP_CODE_IN_ADDRESS']
+KNOWN_REQUIRED_FIELDS_DICT = {
+    'DRIVER LICENSE FRONT': ['ID_TYPE', 'FIRST_NAME', 'LAST_NAME', 'DATE_OF_BIRTH', 'ADDRESS', 'ZIP_CODE_IN_ADDRESS'],
+    'PASSPORT': ['ID_TYPE', 'FIRST_NAME', 'LAST_NAME', 'DATE_OF_BIRTH']
+}
 ADDITIONAL_INFO_FIELD = 'ADDITIONAL_INFORMATION'
 
 # AWS setup
@@ -59,14 +62,22 @@ def process_id_document(image_bytes):
     response_dict = dict()
     response_dict[ADDITIONAL_INFO_FIELD] = dict()
     entities = extract_text_with_textract(image_bytes)
-    if entities['ID_TYPE'] == 'UNKNOWN':
+    id_type = entities['ID_TYPE']
+    if id_type not in KNOWN_REQUIRED_FIELDS_DICT:
         full_text = analyze_text(image_bytes)
-        entities = get_entities_from_openai(full_text, REQUIRED_FIELDS)
-    for key, value in entities.items():
-        if key in REQUIRED_FIELDS:
-            response_dict[key] = value
-        else:
-            response_dict[ADDITIONAL_INFO_FIELD][key] = value
+        entities = get_entities_from_openai(full_text, DEFAULT_REQUIRED_FIELDS_QUERIES)
+        for key, value in entities.items():
+            if key in DEFAULT_REQUIRED_FIELDS_QUERIES:
+                response_dict[key] = value
+            else:
+                response_dict[ADDITIONAL_INFO_FIELD][key] = value
+    else:
+        required_fields = KNOWN_REQUIRED_FIELDS_DICT[id_type]
+        for key, value in entities.items():
+            if key in required_fields:
+                response_dict[key] = value
+            else:
+                response_dict[ADDITIONAL_INFO_FIELD][key] = value
     return response_dict
 
 def lambda_handler(event, context):
